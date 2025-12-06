@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cyber Voice Changer (v1.0 - Syntax Fixed)</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Babel (JSX Transformer) -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #111827; }
+        ::-webkit-scrollbar-thumb { background: #374151; border-radius: 4px; }
+    </style>
+</head>
+<body class="bg-gray-950 text-white h-screen overflow-auto">
+
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // --- Icons ---
+        const Icon = ({ path, ...props }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+                {path}
+            </svg>
+        );
+
+        const Activity = (p) => <Icon {...p} path={<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>} />;
+        const Power = (p) => <Icon {...p} path={<><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></>} />;
+        const Settings = (p) => <Icon {...p} path={<><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.72v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></>} />;
+        const Mic = (p) => <Icon {...p} path={<><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></>} />;
+        const Volume2 = (p) => <Icon {...p} path={<><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></>} />;
+        const Headphones = (p) => <Icon {...p} path={<><path d="M3 14v-3a9 9 0 0 1 18 0v3"/><path d="M2 19v-3a2 2 0 0 1 2-2h1a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2z"/><path d="M22 19v-3a2 2 0 0 0-2-2h-1a2 2 0 0 0-2 2v3a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2z"/></>} />;
+        const AlertTriangle = (p) => <Icon {...p} path={<><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></>} />;
+        const Zap = (p) => <Icon {...p} path={<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>} />;
+        const Radio = (p) => <Icon {...p} path={<><circle cx="12" cy="12" r="2"/><path d="M16.24 7.76a6 6 0 0 1 0 8.49"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></>} />;
+        const Layers = (p) => <Icon {...p} path={<><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></>} />;
+        const Waves = (p) => <Icon {...p} path={<path d="M2 6c.6.5 1.2 1 2.5 1C7 7 7 5 9.5 5c2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1M2 12c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1M2 18c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/>} />;
+        const RotateCcw = (p) => <Icon {...p} path={<><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></>} />;
+        const User = (p) => <Icon {...p} path={<><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></>} />;
+        const Smile = (p) => <Icon {...p} path={<><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></>} />;
+        const Bot = (p) => <Icon {...p} path={<><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/><line x1="8" y1="16" x2="8" y2="16"/><line x1="16" y1="16" x2="16" y2="16"/></>} />;
+
+
+        const Slider = ({ label, value, min, max, step, onChange, unit = '' }) => (
+            <div className="mb-4">
+                <div className="flex justify-between mb-1">
+                    <label className="text-xs font-bold text-gray-400 tracking-wider uppercase">{label}</label>
+                    <span className="text-xs text-cyan-400 font-mono bg-cyan-900/20 px-1.5 py-0.5 rounded">{value.toFixed(2)}{unit}</span>
+                </div>
+                <input
+                    type="range" min={min} max={max} step={step} value={value}
+                    onChange={(e) => onChange(parseFloat(e.target.value))}
+                    className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-cyan-500 hover:accent-cyan-400 focus:outline-none focus:ring-1 focus:ring-cyan-500/50"
+                />
+            </div>
+        );
+
+        const VoiceChanger = () => {
+            const [isActive, setIsActive] = useState(false);
+            const [permissionGranted, setPermissionGranted] = useState(false);
+            const [devices, setDevices] = useState({ inputs: [], outputs: [] });
+            
+            // Devices State
+            const [selectedInput, setSelectedInput] = useState('');
+            const [selectedOutput, setSelectedOutput] = useState('');
+            const [selectedMonitor, setSelectedMonitor] = useState('none');
+            
+            // Refs to hold current device IDs for async logic
+            const selectedInputRef = useRef('');
+            const selectedOutputRef = useRef('');
+            const selectedMonitorRef = useRef('none');
+
+            const [pitch, setPitch] = useState(1.0);
+            const [formant, setFormant] = useState(0);
+            const [volume, setVolume] = useState(1.0);
+            const [monitorVolume, setMonitorVolume] = useState(1.0);
+            const [echoTime, setEchoTime] = useState(0.0);
+            const [echoFeedback, setEchoFeedback] = useState(0.3);
+
+            const audioContextRef = useRef(null);
+            const isActiveRef = useRef(false);
+            const sourceNodeRef = useRef(null);
+            const scriptNodeRef = useRef(null);
+            const filterNodesRef = useRef([]); 
+            const gainNodeRef = useRef(null); 
+            const delayNodeRef = useRef(null);
+            const feedbackNodeRef = useRef(null);
+            const analyserRef = useRef(null);
+            
+            // Audio Output Refs (Dual)
+            const audioOutputRef = useRef(null);   // Main Output
+            const monitorAudioRef = useRef(null);  // Monitor Output
+            
+            const audioParamsRef = useRef({ pitch: 1.0 });
+
+            const canvasRef = useRef(null);
+            const animationFrameRef = useRef(null);
+            const delayBufferRef = useRef(null);
+            const writePtrRef = useRef(0);
+
+            // Sync Refs with State
+            useEffect(() => { selectedInputRef.current = selectedInput; }, [selectedInput]);
+            useEffect(() => { selectedOutputRef.current = selectedOutput; }, [selectedOutput]);
+            useEffect(() => { selectedMonitorRef.current = selectedMonitor; }, [selectedMonitor]);
+
+            useEffect(() => {
+                const init = async () => {
+                    try {
+                        await navigator.mediaDevices.getUserMedia({ audio: true });
+                        setPermissionGranted(true);
+                        updateDeviceList();
+                        navigator.mediaDevices.ondevicechange = updateDeviceList;
+                    } catch (err) {
+                        console.error("Permission denied:", err);
+                        setPermissionGranted(false);
+                    }
+                };
+                init();
+                return () => stopAudio();
+            }, []);
+
+            // Restart when Input changes if Active
+            useEffect(() => {
+                if (isActive) {
+                    // Slight debounce to prevent rapid restart issues
+                    stopAudio();
+                    setTimeout(() => startAudio(), 100);
+                }
+            }, [selectedInput]);
+
+            // Update Sink IDs dynamically
+            useEffect(() => {
+                if (audioOutputRef.current && selectedOutput && typeof audioOutputRef.current.setSinkId === 'function') {
+                    audioOutputRef.current.setSinkId(selectedOutput).catch(e => console.error("Main Sink Error:", e));
+                }
+            }, [selectedOutput]);
+
+            useEffect(() => {
+                updateMonitorSink();
+            }, [selectedMonitor]);
+
+            // Visualizer Loop
+            useEffect(() => {
+                isActiveRef.current = isActive;
+                if (isActive) drawVisualizer();
+                else if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
+            }, [isActive]);
+
+            const updateMonitorSink = () => {
+                if (!monitorAudioRef.current) return;
+                
+                // Mute logic
+                if (selectedMonitor === 'none') {
+                    monitorAudioRef.current.muted = true;
+                    monitorAudioRef.current.volume = 0; // Double ensure silence
+                } else {
+                    monitorAudioRef.current.muted = false;
+                    // Fix: Clamp volume between 0 and 1
+                    monitorAudioRef.current.volume = Math.max(0, Math.min(1, monitorVolume));
+                    if (typeof monitorAudioRef.current.setSinkId === 'function') {
+                        monitorAudioRef.current.setSinkId(selectedMonitor).catch(e => console.error("Monitor Sink Error:", e));
+                    }
+                }
+            };
+
+            const updateDeviceList = async () => {
+                try {
+                    const list = await navigator.mediaDevices.enumerateDevices();
+                    const inputs = list.filter(d => d.kind === 'audioinput');
+                    const outputs = list.filter(d => d.kind === 'audiooutput');
+                    setDevices({ inputs, outputs });
+                    
+                    // Initial Selections
+                    if (inputs.length > 0 && !selectedInputRef.current) {
+                        setSelectedInput(inputs[0].deviceId);
+                    }
+                    
+                    // Main Output Default
+                    if (outputs.length > 0 && !selectedOutputRef.current) {
+                        // Try to find 'default' or first
+                        const def = outputs.find(d => d.deviceId === 'default');
+                        setSelectedOutput(def ? def.deviceId : outputs[0].deviceId);
+                    }
+                } catch (e) {
+                    console.error("Device enumeration failed", e);
+                }
+            };
+
+            const resetParams = () => {
+                setPitch(1.0); setFormant(0); setVolume(1.0); setMonitorVolume(1.0);
+                setEchoTime(0.0); setEchoFeedback(0.3);
+            };
+
+            const applyPreset = (type) => {
+                switch (type) {
+                    case 'male': setPitch(0.75); setFormant(-25); setEchoTime(0.0); setEchoFeedback(0.0); break;
+                    case 'female': setPitch(1.45); setFormant(30); setEchoTime(0.0); setEchoFeedback(0.0); break;
+                    case 'robot': setPitch(0.80); setFormant(-10); setEchoTime(0.02); setEchoFeedback(0.75); break;
+                }
+            };
+
+            const startAudio = async () => {
+                try {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    const ctx = new AudioContext({ latencyHint: 'interactive', sampleRate: 48000 });
+                    audioContextRef.current = ctx;
+
+                    if (ctx.state === 'suspended') await ctx.resume();
+
+                    // Use Ref to ensure we get the latest selected Input even inside closures
+                    const inputId = selectedInputRef.current;
+                    const constraints = {
+                        audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: 1 }
+                    };
+                    if (inputId) constraints.audio.deviceId = { exact: inputId };
+
+                    const stream = await navigator.mediaDevices.getUserMedia(constraints);
+                    const source = ctx.createMediaStreamSource(stream);
+                    sourceNodeRef.current = source;
+
+                    const analyser = ctx.createAnalyser();
+                    analyser.fftSize = 2048;
+                    analyserRef.current = analyser;
+
+                    // DSP Graph
+                    const filters = [];
+                    const f0 = ctx.createBiquadFilter(); f0.type = 'lowshelf'; filters.push(f0);
+                    const f1 = ctx.createBiquadFilter(); f1.type = 'peaking'; filters.push(f1);
+                    const f2 = ctx.createBiquadFilter(); f2.type = 'peaking'; filters.push(f2);
+                    const f3 = ctx.createBiquadFilter(); f3.type = 'peaking'; filters.push(f3);
+                    const f4 = ctx.createBiquadFilter(); f4.type = 'highshelf'; filters.push(f4);
+                    for (let i = 0; i < filters.length - 1; i++) filters[i].connect(filters[i+1]);
+                    filterNodesRef.current = filters;
+
+                    const bufferSize = 2048;
+                    const scriptNode = ctx.createScriptProcessor(bufferSize, 1, 1);
+                    scriptNodeRef.current = scriptNode;
+
+                    // Pitch Logic
+                    const delayLen = ctx.sampleRate * 2;
+                    delayBufferRef.current = new Float32Array(delayLen);
+                    writePtrRef.current = 0;
+                    let phase = 0;
+
+                    scriptNode.onaudioprocess = (e) => {
+                        const input = e.inputBuffer.getChannelData(0);
+                        const output = e.outputBuffer.getChannelData(0);
+                        const dBuffer = delayBufferRef.current;
+                        let wPtr = writePtrRef.current;
+                        const pFactor = audioParamsRef.current.pitch;
+                        const winSize = 0.04 * ctx.sampleRate; 
+
+                        for (let i = 0; i < input.length; i++) {
+                            dBuffer[wPtr] = input[i];
+                            let freq = -(pFactor - 1.0) / winSize; 
+                            phase += freq;
+                            if (phase >= 1.0) phase -= 1.0; if (phase < 0.0) phase += 1.0;
+
+                            const delayA = phase * winSize;
+                            const delayB = ((phase + 0.5) % 1.0) * winSize;
+                            const rPtrA = (wPtr - delayA + delayLen) % delayLen;
+                            const rPtrB = (wPtr - delayB + delayLen) % delayLen;
+                            const valA = dBuffer[Math.floor(rPtrA)];
+                            const valB = dBuffer[Math.floor(rPtrB)];
+                            let gainA = 1.0 - 2.0 * Math.abs(phase - 0.5);
+                            let gainB = 1.0 - 2.0 * Math.abs(((phase + 0.5) % 1.0) - 0.5);
+
+                            output[i] = (valA * gainA + valB * gainB);
+                            wPtr = (wPtr + 1) % delayLen;
+                        }
+                        writePtrRef.current = wPtr;
+                    };
+
+                    // Delay
+                    const delayNode = ctx.createDelay(2.0);
+                    const feedbackNode = ctx.createGain();
+                    delayNodeRef.current = delayNode;
+                    feedbackNodeRef.current = feedbackNode;
+
+                    const masterGain = ctx.createGain();
+                    gainNodeRef.current = masterGain;
+
+                    // Connect
+                    source.connect(scriptNode);
+                    scriptNode.connect(filters[0]);
+                    filters[filters.length - 1].connect(masterGain);
+
+                    masterGain.connect(analyser); 
+                    masterGain.connect(delayNode);
+                    delayNode.connect(feedbackNode);
+                    feedbackNode.connect(delayNode);
+                    delayNode.connect(analyser); 
+
+                    const destination = ctx.createMediaStreamDestination();
+                    analyser.connect(destination);
+
+                    // --- Outputs ---
+                    
+                    // 1. Main Output (Always active unless user chooses dummy device)
+                    if (audioOutputRef.current) {
+                        audioOutputRef.current.srcObject = destination.stream;
+                        await audioOutputRef.current.play();
+                        // Apply specific device
+                        if (selectedOutputRef.current && typeof audioOutputRef.current.setSinkId === 'function') {
+                            await audioOutputRef.current.setSinkId(selectedOutputRef.current);
+                        }
+                    }
+
+                    // 2. Monitor Output
+                    if (monitorAudioRef.current) {
+                        monitorAudioRef.current.srcObject = destination.stream;
+                        await monitorAudioRef.current.play();
+                        updateMonitorSink(); // Apply mute/sink settings immediately
+                    }
+
+                    applyEffectParams(); 
+                    setIsActive(true); 
+
+                } catch (err) {
+                    console.error("Start Error:", err);
+                    alert("起動エラー: " + err.message);
+                    setIsActive(false);
+                }
+            };
+
+            const stopAudio = () => {
+                if (audioContextRef.current) audioContextRef.current.close();
+                audioContextRef.current = null;
+                if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
+                setIsActive(false);
+            };
+
+            const toggleAudio = () => isActive ? stopAudio() : startAudio();
+
+            useEffect(() => {
+                audioParamsRef.current = { pitch };
+                if (isActive) applyEffectParams();
+            }, [pitch, formant, volume, monitorVolume, echoTime, echoFeedback, isActive]);
+
+            const applyEffectParams = () => {
+                if (!audioContextRef.current) return;
+                const ctx = audioContextRef.current;
+                const t = ctx.currentTime;
+
+                if (gainNodeRef.current) gainNodeRef.current.gain.setTargetAtTime(volume, t, 0.05);
+                
+                // Monitor Volume is handled via HTMLMediaElement.volume, not GainNode, to allow separation
+                if (monitorAudioRef.current && selectedMonitor !== 'none') {
+                    // Fix: Clamp volume between 0 and 1
+                    monitorAudioRef.current.volume = Math.max(0, Math.min(1, monitorVolume));
+                }
+
+                if (delayNodeRef.current && feedbackNodeRef.current) {
+                    if (echoTime === 0.0 && echoFeedback === 0.0) {
+                        delayNodeRef.current.delayTime.setTargetAtTime(0, t, 0.1);
+                        feedbackNodeRef.current.gain.setTargetAtTime(0, t, 0.1);
+                    } else {
+                        delayNodeRef.current.delayTime.setTargetAtTime(Math.max(0.001, echoTime), t, 0.1);
+                        feedbackNodeRef.current.gain.setTargetAtTime(echoFeedback, t, 0.1);
+                    }
+                }
+
+                if (filterNodesRef.current.length > 0) {
+                    const filters = filterNodesRef.current;
+                    const shiftFactor = Math.pow(2, formant / 100.0);
+                    const baseFreqs = [500, 1500, 2500];
+                    filters[0].frequency.setTargetAtTime(200 * shiftFactor, t, 0.1);
+                    filters[0].gain.setTargetAtTime((1.0 - shiftFactor) * 20, t, 0.1);
+                    filters[4].frequency.setTargetAtTime(4000 * shiftFactor, t, 0.1);
+                    filters[4].gain.setTargetAtTime((shiftFactor - 1.0) * 15, t, 0.1);
+                    [filters[1], filters[2], filters[3]].forEach((filter, i) => {
+                        const targetFreq = Math.max(50, Math.min(baseFreqs[i] * shiftFactor, 16000));
+                        filter.frequency.setTargetAtTime(targetFreq, t, 0.1);
+                        if (formant !== 0) {
+                            filter.Q.setTargetAtTime(2.0, t, 0.1);
+                            filter.gain.setTargetAtTime(5.0, t, 0.1);
+                        } else {
+                            filter.Q.setTargetAtTime(1.0, t, 0.1);
+                            filter.gain.setTargetAtTime(0.0, t, 0.1);
+                        }
+                    });
+                }
+            };
+
+            const drawVisualizer = () => {
+                if (!analyserRef.current || !canvasRef.current) return;
+                const canvas = canvasRef.current;
+                const ctx = canvas.getContext('2d');
+                const analyser = analyserRef.current;
+                const dpr = window.devicePixelRatio || 1;
+                const rect = canvas.getBoundingClientRect();
+                if (rect.width > 0 && rect.height > 0) {
+                    if (canvas.width !== Math.floor(rect.width * dpr) || canvas.height !== Math.floor(rect.height * dpr)) {
+                        canvas.width = Math.floor(rect.width * dpr);
+                        canvas.height = Math.floor(rect.height * dpr);
+                    }
+                }
+                const bufferLen = analyser.frequencyBinCount;
+                const data = new Uint8Array(bufferLen);
+                const draw = () => {
+                    if (!isActiveRef.current) return;
+                    animationFrameRef.current = requestAnimationFrame(draw);
+                    analyser.getByteTimeDomainData(data);
+                    ctx.fillStyle = '#09090b'; 
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    ctx.lineWidth = 3 * dpr;
+                    ctx.strokeStyle = '#22d3ee';
+                    ctx.lineCap = 'round';
+                    ctx.lineJoin = 'round';
+                    ctx.shadowBlur = 10;
+                    ctx.shadowColor = '#22d3ee';
+                    ctx.beginPath();
+                    const sliceW = canvas.width / bufferLen;
+                    let x = 0;
+                    let maxVal = 0;
+                    for(let i=0; i<bufferLen; i+=10) {
+                        const v = Math.abs(data[i] - 128);
+                        if (v > maxVal) maxVal = v;
+                    }
+                    let visualGain = maxVal > 1 ? Math.min(6.0, (canvas.height/4) / maxVal) : 0;
+                    const hasInput = maxVal > 2; 
+                    for (let i = 0; i < bufferLen; i++) {
+                        let v = (data[i] - 128);
+                        if (!hasInput) {
+                            v = Math.sin(Date.now() / 200 + i / 50) * 2;
+                            visualGain = 1; 
+                            ctx.strokeStyle = '#374151'; 
+                            ctx.shadowColor = 'transparent';
+                        }
+                        const y = (canvas.height / 2) + (v * visualGain * dpr);
+                        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+                        x += sliceW;
+                    }
+                    ctx.stroke();
+                };
+                draw();
+            };
+
+            return (
+                <div className="min-h-screen bg-gray-950 text-white p-4 font-sans selection:bg-cyan-500/30">
+                    <div className="max-w-4xl mx-auto bg-gray-900 rounded-3xl shadow-2xl border border-gray-800 overflow-hidden relative">
+                        <div className="bg-gray-900 px-6 py-4 border-b border-gray-800 flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-cyan-500/10 rounded-lg">
+                                    <Activity className="text-cyan-400 w-5 h-5" />
+                                </div>
+                                <div><h1 className="text-lg font-bold text-white tracking-tight">CyberVocal Core <span className="text-cyan-500">v11.1</span></h1></div>
+                            </div>
+                            <div className={`flex items-center gap-2 px-3 py-1 rounded-full text-[10px] font-bold tracking-wider border ${isActive ? 'bg-green-500/10 text-green-400 border-green-500/30' : 'bg-gray-800 text-gray-500 border-gray-700'}`}>
+                                <Radio size={10} className={isActive ? "animate-pulse" : ""} />
+                                {isActive ? 'DSP ACTIVE' : 'OFFLINE'}
+                            </div>
+                        </div>
+
+                        <div className="bg-yellow-900/10 border-b border-yellow-900/20 py-2 px-6 text-yellow-500/80 text-xs flex justify-center gap-2">
+                            <AlertTriangle className="w-4 h-4" />
+                            <span>Main出力は「仮想デバイス」へ、Monitorは「ヘッドフォン」へ設定してください。「None」でMonitorを消音できます。</span>
+                        </div>
+
+                        {!permissionGranted && (
+                            <div className="m-4 p-3 bg-red-900/20 border border-red-500/30 rounded text-red-300 text-xs text-center">
+                                マイクの許可が必要です。
+                            </div>
+                        )}
+
+                        <div className="p-6 space-y-6">
+                            <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-6 items-center">
+                                <div className="relative h-40 bg-black rounded-xl border border-gray-800 overflow-hidden shadow-inner group w-full">
+                                    <canvas ref={canvasRef} className="w-full h-full block" />
+                                    <div className="absolute top-2 left-3 text-[10px] text-gray-600 font-mono">OSCILLOSCOPE_INPUT_MONITOR</div>
+                                </div>
+                                <button onClick={toggleAudio} disabled={!permissionGranted} className={`w-24 h-24 md:w-32 md:h-40 rounded-xl flex flex-col items-center justify-center transition-all duration-300 border-2 ${isActive ? 'bg-red-500/10 border-red-500 text-red-500 shadow-[0_0_30px_rgba(239,68,68,0.2)]' : 'bg-gray-800/50 border-gray-700 text-gray-500 hover:border-cyan-500/50 hover:text-cyan-400'}`}>
+                                    <Power size={32} className="mb-2" />
+                                    <span className="text-xs font-bold tracking-widest">{isActive ? 'STOP' : 'START'}</span>
+                                </button>
+                            </div>
+
+                            <div className="bg-gray-800/30 p-4 rounded-xl border border-gray-800/50 flex flex-wrap gap-4 items-center justify-center md:justify-start">
+                                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider mr-2">Presets:</span>
+                                <button onClick={() => applyPreset('male')} className="flex items-center gap-2 px-4 py-2 bg-blue-900/30 text-blue-300 border border-blue-800/50 rounded-lg hover:bg-blue-800/50 text-xs font-bold transition-all"><User size={14} /> Male</button>
+                                <button onClick={() => applyPreset('female')} className="flex items-center gap-2 px-4 py-2 bg-pink-900/30 text-pink-300 border border-pink-800/50 rounded-lg hover:bg-pink-800/50 text-xs font-bold transition-all"><Smile size={14} /> Female</button>
+                                <button onClick={() => applyPreset('robot')} className="flex items-center gap-2 px-4 py-2 bg-emerald-900/30 text-emerald-300 border border-emerald-800/50 rounded-lg hover:bg-emerald-800/50 text-xs font-bold transition-all"><Bot size={14} /> Robot</button>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <div className="bg-gray-800/30 p-5 rounded-xl border border-gray-800/50">
+                                    <div className="flex items-center gap-2 mb-4 text-cyan-500"><Waves size={16} /><h3 className="font-bold text-xs uppercase tracking-wider">Tone Shift</h3></div>
+                                    <Slider label="Pitch" value={pitch} min={0.5} max={2.0} step={0.01} onChange={setPitch} unit="x" />
+                                    <Slider label="Formant" value={formant} min={-100} max={100} step={1} onChange={setFormant} unit="%" />
+                                </div>
+                                <div className="bg-gray-800/30 p-5 rounded-xl border border-gray-800/50">
+                                    <div className="flex items-center gap-2 mb-4 text-purple-400"><Layers size={16} /><h3 className="font-bold text-xs uppercase tracking-wider">Echo / Delay</h3></div>
+                                    <Slider label="Time" value={echoTime} min={0.0} max={1.0} step={0.01} onChange={setEchoTime} unit="s" />
+                                    <Slider label="Feedback" value={echoFeedback} min={0.0} max={0.9} step={0.05} onChange={setEchoFeedback} />
+                                </div>
+                                <div className="bg-gray-800/30 p-5 rounded-xl border border-gray-800/50 flex flex-col justify-between">
+                                    <div className="flex items-center gap-2 mb-4 text-gray-400"><Settings size={16} /><h3 className="font-bold text-xs uppercase tracking-wider">System</h3></div>
+                                    
+                                    <div className="mt-2 space-y-3">
+                                        {/* Input */}
+                                        <div>
+                                            <label className="text-[10px] text-gray-500 uppercase font-bold ml-1 mb-1 block flex items-center gap-1"><Mic size={10}/> Input</label>
+                                            <select value={selectedInput} onChange={(e) => setSelectedInput(e.target.value)} className="w-full bg-gray-900 border border-gray-700 text-[10px] text-gray-400 rounded p-2 outline-none">
+                                                {devices.inputs.map(d => <option key={d.deviceId} value={d.deviceId}>{d.label || `Mic ${d.deviceId.slice(0,4)}`}</option>)}
+                                            </select>
+                                        </div>
+
+                                        {/* Main Output */}
+                                        <div>
+                                            <div className="flex justify-between items-center mb-1">
+                                                <label className="text-[10px] text-gray-500 uppercase font-bold ml-1 block flex items-center gap-1"><Volume2 size={10}/> Main Output</label>
+                                                <span className="text-[10px] text-cyan-500">{volume.toFixed(1)}</span>
+                                            </div>
+                                            <input type="range" min="0" max="3" step="0.1" value={volume} onChange={(e)=>setVolume(parseFloat(e.target.value))} className="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-cyan-500 mb-1" />
+                                            <select value={selectedOutput} onChange={(e) => setSelectedOutput(e.target.value)} className="w-full bg-gray-900 border border-gray-700 text-[10px] text-gray-400 rounded p-2 outline-none">
+                                                {devices.outputs.map(d => <option key={d.deviceId} value={d.deviceId}>{d.label || `Main: ${d.deviceId.slice(0,4)}`}</option>)}
+                                            </select>
+                                        </div>
+
+                                        {/* Monitor Output */}
+                                        <div>
+                                            <div className="flex justify-between items-center mb-1">
+                                                <label className="text-[10px] text-gray-500 uppercase font-bold ml-1 block flex items-center gap-1"><Headphones size={10}/> Monitor Output</label>
+                                                <span className="text-[10px] text-purple-500">{monitorVolume.toFixed(1)}</span>
+                                            </div>
+                                            {/* Fix: Max volume for monitor slider set to 1.0 */}
+                                            <input type="range" min="0" max="1" step="0.05" value={monitorVolume} onChange={(e)=>setMonitorVolume(parseFloat(e.target.value))} className="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-purple-500 mb-1" />
+                                            <select value={selectedMonitor} onChange={(e) => setSelectedMonitor(e.target.value)} className="w-full bg-gray-900 border border-gray-700 text-[10px] text-gray-400 rounded p-2 outline-none">
+                                                <option value="none">⛔ None (Mute)</option>
+                                                {devices.outputs.map(d => <option key={d.deviceId} value={d.deviceId}>{d.label || `Monitor: ${d.deviceId.slice(0,4)}`}</option>)}
+                                            </select>
+                                        </div>
+
+                                        <button onClick={resetParams} className="w-full mt-2 py-1.5 text-[10px] font-bold text-cyan-400 border border-cyan-900/50 rounded hover:bg-cyan-900/20 transition-colors uppercase tracking-wider flex items-center justify-center gap-2">
+                                            <RotateCcw size={12} /> Reset
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <audio ref={audioOutputRef} hidden />
+                        <audio ref={monitorAudioRef} hidden />
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<VoiceChanger />);
+    </script>
+</body>
+</html>
